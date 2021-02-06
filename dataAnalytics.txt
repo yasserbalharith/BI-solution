@@ -1,0 +1,45 @@
+Importing Dataset into SAS
+/* Generated Code (IMPORT) */
+/* Source File: vaccination_tweets.csv */
+/* Source Path: /folders/myfolders */
+/* Code generated on: 2/6/21, 6:12 PM */
+%web_drop_table(WORK.IMPORT);
+FILENAME REFFILE '/folders/myfolders/vaccination_tweets.csv';
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=CSV
+	OUT=WORK.IMPORT;
+	GETNAMES=YES;
+RUN;
+PROC CONTENTS DATA=WORK.IMPORT; RUN;
+%web_open_table(WORK.IMPORT);
+For Graphs
+Histogram
+proc sgplot data=WORK.IMPORT;
+	histogram retweets /;
+	yaxis grid;
+run;
+ods graphics / reset;
+Bar Chart
+proc sgplot data=WORK.IMPORT;
+	vbar retweets / group=hashtags groupdisplay=cluster;
+	yaxis grid;
+run;	
+ods graphics / reset;
+For Model and Forecasting
+proc timedata data=WORK.IMPORT out=WORK._tsoutput;
+	var retweets / transform=none setmissing=missing;
+run;
+data work.tsPrep(rename=());
+	set WORK._tsoutput;
+run;
+proc delete data=WORK._tsoutput;
+run;
+proc arima data=WORK.IMPORT plots
+    (only)=(series(corr crosscorr) residual(corr normal) 
+		forecast(forecastonly));
+	identify var=retweets;
+	estimate q=(1) ma=(1.0) noint method=CLS;
+	forecast lead=12 back=0 alpha=0.05;
+	outlier;
+	run;
+quit;
